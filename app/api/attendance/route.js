@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
-import { kv } from "@vercel/kv";
+import { Redis } from "@upstash/redis";
 import Pusher from "pusher";
+
+const redis = new Redis({
+  url:   process.env.UPSTASH_REDIS_REST_URL,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN,
+});
 
 const pusher = new Pusher({
   appId:   process.env.PUSHER_APP_ID,
@@ -26,31 +31,27 @@ export async function POST(request) {
     const record = {
       id:        Date.now(),
       name,
-      location,   // "PESCE" or "Home"
-      time,       // "08:30:00"
-      ampm:       ampm || "",
-      uid:        uid  || "N/A",
-      timestamp:  new Date().toISOString(),
+      location,
+      time,
+      ampm:      ampm || "",
+      uid:       uid  || "N/A",
+      timestamp: new Date().toISOString(),
     };
 
-    // ── Persist in Vercel KV ────────────────────────────────────────────────
-    // Push record to a list (newest first via lpush)
-    await kv.lpush("attendance_log", JSON.stringify(record));
-    // Trim to last 500 records
-    await kv.ltrim("attendance_log", 0, 499);
+    // Save to Upstash Redis
+    await redis.lpush("attendance_log", JSON.stringify(record));
+    await redis.ltrim("attendance_log", 0, 499);
 
-    // Update current status hash
-    const statusKey = `status:${name}`;
-    await kv.hset(statusKey, {
+    // Update current status
+    await redis.hset(`status:${name}`, {
       inside:   location === "PESCE" ? "1" : "0",
       lastSeen: `${time} ${ampm}`,
       location,
     });
 
-    // ── Push live event to browsers via Pusher ──────────────────────────────
+    // Push live event to browsers
     await pusher.trigger("attendance", "new-record", { record });
 
-    console.log(`[${new Date().toLocaleTimeString()}] ${name} → ${location} at ${time} ${ampm}`);
     return NextResponse.json({ success: true, record });
   } catch (err) {
     console.error("POST /api/attendance error:", err);
@@ -58,10 +59,10 @@ export async function POST(request) {
   }
 }
 
-// GET /api/attendance — returns log + current status (used on page load)
+// GET /api/attendance — initial page load data
 export async function GET() {
   try {
-    const rawList = await kv.lrange("attendance_log", 0, 99);
+    const rawList = await redis.lrange("attendance_log", 0, 99);
     const attendanceLog = rawList.map((item) =>
       typeof item === "string" ? JSON.parse(item) : item
     );
@@ -69,9 +70,9 @@ export async function GET() {
     const names = ["Pranav", "Chiranth"];
     const currentStatus = {};
     for (const name of names) {
-      const s = await kv.hgetall(`status:${name}`);
+      const s = await redis.hgetall(`status:${name}`);
       currentStatus[name] = s
-        ? { inside: s.inside === "1", lastSeen: s.lastSeen, location: s.location }
+        ? { inside: s.inside === "1", lastSeen: s.lastSeen || null, location: s.location || null }
         : { inside: false, lastSeen: null, location: null };
     }
 

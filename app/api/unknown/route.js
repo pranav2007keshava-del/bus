@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
-import { kv } from "@vercel/kv";
+import { Redis } from "@upstash/redis";
 import Pusher from "pusher";
+
+const redis = new Redis({
+  url:   process.env.UPSTASH_REDIS_REST_URL,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN,
+});
 
 const pusher = new Pusher({
   appId:   process.env.PUSHER_APP_ID,
@@ -10,7 +15,7 @@ const pusher = new Pusher({
   useTLS:  true,
 });
 
-// POST /api/unknown — called by the ESP32 when an unrecognised card is scanned
+// POST /api/unknown — unknown card scanned
 export async function POST(request) {
   try {
     const body = await request.json();
@@ -26,8 +31,8 @@ export async function POST(request) {
       timestamp: new Date().toISOString(),
     };
 
-    await kv.lpush("attendance_log", JSON.stringify(record));
-    await kv.ltrim("attendance_log", 0, 499);
+    await redis.lpush("attendance_log", JSON.stringify(record));
+    await redis.ltrim("attendance_log", 0, 499);
 
     await pusher.trigger("attendance", "unknown-card", { record });
 
