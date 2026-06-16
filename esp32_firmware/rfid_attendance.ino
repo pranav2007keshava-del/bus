@@ -19,8 +19,8 @@ RTC_DS3231        rtc;
 const char* WIFI_SSID      = "YOUR_WIFI_SSID";
 const char* WIFI_PASSWORD  = "YOUR_WIFI_PASSWORD";
 
-// Your Vercel deployment URL (no trailing slash)
-const char* SERVER_HOST    = "your-project.vercel.app";
+// Your Vercel deployment URL — host only, no https:// prefix, no trailing slash
+const char* SERVER_HOST    = "bus-pifs4z32p-pranav2007keshava-dels-projects.vercel.app";
 const char* ATTEND_PATH    = "/api/attendance";
 const char* UNKNOWN_PATH   = "/api/unknown";
 
