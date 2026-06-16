@@ -1,0 +1,57 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --lcd-glow: rgba(168, 224, 99, 0.35);
+}
+
+body {
+  background-color: #0f1117;
+  color: #e6e9f4;
+  min-height: 100vh;
+}
+
+/* LCD character glow */
+.lcd-text {
+  color: #a8e063;
+  text-shadow: 0 0 8px var(--lcd-glow);
+}
+
+/* LCD screen flash on new event */
+@keyframes lcdFlash {
+  0%   { opacity: 1; }
+  20%  { opacity: 0.15; }
+  50%  { opacity: 1; }
+  70%  { opacity: 0.4; }
+  100% { opacity: 1; }
+}
+.lcd-flash {
+  animation: lcdFlash 0.4s ease;
+}
+
+/* Log row entrance */
+@keyframes rowSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+    background-color: rgba(108, 99, 255, 0.12);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    background-color: transparent;
+  }
+}
+.row-enter {
+  animation: rowSlideIn 0.5s ease forwards;
+}
+
+/* Pulse dot for live badge */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.3; }
+}
+.pulse-dot {
+  animation: pulse 1.5s infinite;
+}
